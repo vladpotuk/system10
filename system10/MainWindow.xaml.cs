@@ -1,24 +1,62 @@
-﻿using System.Text;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace system10
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        private Semaphore semaphore = new Semaphore(3, 3); 
+
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void StartButton_Click(object sender, RoutedEventArgs e)
+        {
+            OutputTextBox.Clear();
+
+            for (int i = 0; i < 10; i++)
+            {
+                int threadId = i;
+                Task.Run(() => ThreadWork(threadId));
+            }
+        }
+
+        private void ThreadWork(int threadId)
+        {
+            semaphore.WaitOne();
+
+            try
+            {
+                Random random = new Random();
+
+                Dispatcher.Invoke(() =>
+                {
+                    OutputTextBox.AppendText($"Потік {threadId} розпочав роботу.\n");
+                });
+
+                for (int i = 0; i < 5; i++)
+                {
+                    int randomValue = random.Next(100);
+                    Dispatcher.Invoke(() =>
+                    {
+                        OutputTextBox.AppendText($"Потік {threadId} генерує випадкове число: {randomValue}\n");
+                    });
+                    Thread.Sleep(500); 
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    OutputTextBox.AppendText($"Потік {threadId} завершив роботу.\n");
+                });
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 }
